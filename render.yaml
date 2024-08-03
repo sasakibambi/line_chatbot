@@ -1,7 +1,7 @@
 services:
-- type: web
-  name: line-chatbot
-  env: python
-  plan: free
-  buildCommand: ""
-  startCommand: "gunicorn app:app"
+  - type: web
+    name: line-chatbot
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: "gunicorn -b 0.0.0.0:5000 app:app"
