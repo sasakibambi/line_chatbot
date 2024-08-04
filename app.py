@@ -1,11 +1,8 @@
 import os
 from flask import Flask, request, abort
-from linebot.v3.messaging import MessagingApi
-from linebot.v3.webhook import WebhookHandler
-from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.events import MessageEvent
-from linebot.v3.messages import TextMessage
-from linebot.v3.message_objects import TextSendMessage
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextSendMessage, TextMessage
 import openai
 
 app = Flask(__name__)
@@ -24,7 +21,7 @@ if not line_channel_secret:
     raise ValueError("LINE_CHANNEL_SECRETが設定されていません。")
 
 openai.api_key = openai_api_key
-line_bot_api = MessagingApi(line_channel_access_token)
+line_bot_api = LineBotApi(line_channel_access_token)
 handler = WebhookHandler(line_channel_secret)
 
 user_question_count = {}
