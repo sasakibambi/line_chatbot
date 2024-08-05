@@ -11,25 +11,25 @@ openai.api_key = os.getenv('OPENAI_API_KEY', 'sk-proj-0rWegtKf1k8b1H5jiy9qT3Blbk
 app = Flask(__name__)
 
 # LINE APIのアクセストークンを設定
-line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN', 'YOUR_ACCESS_TOKEN'))
-handler = WebhookHandler(os.getenv('CHANNEL_SECRET', 'YOUR_CHANNEL_SECRET'))
+line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN', 'NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU='))
+handler = WebhookHandler(os.getenv('CHANNEL_SECRET', 'eb994f30fef1a6cc80a0a3f82508c758'))
 
 # 質問回数を追跡するための変数
 user_question_count = {}
 
 def get_openai_response(user_message):
     system_instruction = "以下の質問に対して、回答を日本語で250文字以内にまとめてください。"
+    messages = [
+        {"role": "system", "content": system_instruction},
+        {"role": "user", "content": user_message}
+    ]
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_message}
-            ]
+            messages=messages
         )
-        reply_message = response.choices[0].message['content'].strip()
-
+        reply_message = response['choices'][0]['message']['content'].strip()
 
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
