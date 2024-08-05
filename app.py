@@ -27,7 +27,7 @@ def home():
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        print("Invalid signature. Please check your channel access token/channel secret.")
+              app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
 
     return 'OK'
@@ -37,6 +37,7 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
+app.logger.info(f"Received message from {user_id}: {user_message}")  # 受信メッセージをログに記録
     # 文字数チェック
     if len(user_message) > 250:
         reply_message = "ご質問は250文字以内でお願いします！"
@@ -63,6 +64,8 @@ def handle_message(event):
             user_question_count[user_id] += 1
         else:
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
+
+app.logger.info(f"Replying with: {reply_message}")  # 返信メッセージをログに記録
 
     line_bot_api.reply_message(
         event.reply_token,
