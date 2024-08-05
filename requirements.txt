@@ -1,6 +1,6 @@
 Flask==2.0.1
 pyngrok==5.1.0
 flask-ngrok==0.0.25
-line-bot-sdk==1.18.0
-openai==0.6.0
+line-bot-sdk==2.0.1
+openai>=0.27.0
 werkzeug==2.0.3

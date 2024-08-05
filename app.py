@@ -3,6 +3,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
+import os
 
 openai.api_key = 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc'
 
@@ -49,14 +50,12 @@ def handle_message(event):
         if user_question_count[user_id] < 3:
             system_instruction = "以下の質問に対して、回答を日本語で250文字以内にまとめてください。"
 
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": user_message}
-                ],
+            response = openai.Completion.create(
+                model="text-davinci-003",
+                prompt=system_instruction + "\n" + user_message,
+                max_tokens=150
             )
-            reply_message = response.choices[0].message['content']
+            reply_message = response.choices[0].text.strip()
 
             # 回答の文字数をチェックして制限
             if len(reply_message) > 250:
