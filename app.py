@@ -45,15 +45,18 @@ def handle_message(event):
         if user_question_count[user_id] < 3:
             system_instruction = "以下の質問に対して、回答を日本語で250文字以内にまとめてください。"
 
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=f"{system_instruction}\n\n{user_message}",
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_message}
+                ],
                 max_tokens=250,
                 n=1,
                 stop=None,
                 temperature=0.7,
             )
-            reply_message = response.choices[0].text.strip()
+            reply_message = response.choices[0].message['content']
 
             if len(reply_message) > 250:
                 reply_message = reply_message[:250] + '...'
