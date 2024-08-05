@@ -1,14 +1,16 @@
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.v3 import LineBotApi, WebhookHandler
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.messaging.models import MessageEvent, TextMessage, TextSendMessage
 import openai
 import os
 
+# Set the OpenAI API key
 openai.api_key = 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc'
 
 app = Flask(__name__)
 
+# Set the LINE API access token and secret
 line_bot_api = LineBotApi('NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU=')
 handler = WebhookHandler('eb994f30fef1a6cc80a0a3f82508c758')
 
@@ -17,14 +19,14 @@ user_question_count = {}
 
 @app.route("/", methods=['POST'])
 def home():
-    # get X-Line-Signature header value
+    # Get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
 
-    # get request body as text
+    # Get request body as text
     body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)  # リクエストボディをログに記録
+    app.logger.info("Request body: " + body)  # Log the request body
 
-    # handle webhook body
+    # Handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -38,9 +40,9 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
-    app.logger.info(f"Received message from {user_id}: {user_message}")  # 受信メッセージをログに記録
+    app.logger.info(f"Received message from {user_id}: {user_message}")  # Log the received message
 
-    # 文字数チェック
+    # Check the length of the message
     if len(user_message) > 250:
         reply_message = "ご質問は250文字以内でお願いします！"
     else:
@@ -59,7 +61,7 @@ def handle_message(event):
             )
             reply_message = response.choices[0].message['content'].strip()
 
-            # 回答の文字数をチェックして制限
+            # Limit the length of the reply message
             if len(reply_message) > 250:
                 reply_message = reply_message[:250] + '...'
 
@@ -67,7 +69,7 @@ def handle_message(event):
         else:
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
 
-    app.logger.info(f"Replying with: {reply_message}")  # 返信メッセージをログに記録
+    app.logger.info(f"Replying with: {reply_message}")  # Log the reply message
 
     line_bot_api.reply_message(
         event.reply_token,
