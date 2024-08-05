@@ -1,29 +1,22 @@
-import os
 from flask import Flask, request, abort
+from pyngrok import ngrok, conf
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextSendMessage, TextMessage
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
+import os
+
+# 環境変数の設定
+openai.api_key = os.getenv('OPENAI_API_KEY')
+conf.get_default().auth_token = os.getenv('NGROK_AUTH_TOKEN')
 
 app = Flask(__name__)
 
-# 環境変数からAPIキーを取得
-openai_api_key = os.getenv('OPENAI_API_KEY')
-line_channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
-line_channel_secret = os.getenv('LINE_CHANNEL_SECRET')
+# LineBotの設定
+line_bot_api = LineBotApi(os.getenv('LINE_CHANNEL_ACCESS_TOKEN'))
+handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
-# 環境変数が取得できているかチェック
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEYが設定されていません。")
-if not line_channel_access_token:
-    raise ValueError("LINE_CHANNEL_ACCESS_TOKENが設定されていません。")
-if not line_channel_secret:
-    raise ValueError("LINE_CHANNEL_SECRETが設定されていません。")
-
-openai.api_key = openai_api_key
-line_bot_api = LineBotApi(line_channel_access_token)
-handler = WebhookHandler(line_channel_secret)
-
+# 質問回数を追跡するための変数
 user_question_count = {}
 
 @app.route("/", methods=['POST'])
@@ -76,4 +69,5 @@ def handle_message(event):
     )
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    public_url = ngrok.connect(5000)
+    app.run(host="0.0.0.0", port=5000)
