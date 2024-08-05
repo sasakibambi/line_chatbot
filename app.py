@@ -1,30 +1,18 @@
 import os
-import subprocess
 from flask import Flask, request, abort
-from linebot.v3 import WebhookHandler
-from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
-from openai import OpenAI
-
-# 仮想環境のアクティベーション（必要に応じて）
-# os.system("source myenv/bin/activate")  # Windowsの場合: myenv\\Scripts\\activate
-
-# `openai migrate` コマンドを実行
-try:
-    result = subprocess.run(["openai", "migrate"], check=True, text=True, capture_output=True)
-    print(result.stdout)  # コマンドの出力を表示
-except subprocess.CalledProcessError as e:
-    print(f"Error occurred: {e.stderr}")
-
-# OpenAI APIキーを設定
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY', 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc'))
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+import openai
 
 app = Flask(__name__)
 
 # LINE API設定
-configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN', 'NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU='))
+line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN', 'NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU='))
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET', 'eb994f30fef1a6cc80a0a3f82508c758'))
+
+# OpenAI APIキーを設定
+openai.api_key = os.getenv('OPENAI_API_KEY', 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc')
 
 # 質問回数を追跡するための変数
 user_question_count = {}
@@ -37,11 +25,11 @@ def get_openai_response(user_message):
     ]
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
         )
-        reply_message = response.choices[0].message.content.strip()
+        reply_message = response.choices[0].message['content'].strip()
 
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
@@ -74,7 +62,7 @@ def home():
 
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessageContent)
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
@@ -97,14 +85,10 @@ def handle_message(event):
     app.logger.info(f"返信内容: {reply_message}")  # 返信メッセージをログに記録
 
     try:
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=reply_message)]
-                )
-            )
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text=reply_message)
+        )
     except Exception as e:
         app.logger.error(f"LINE Messaging APIエラー: {e}")
 
