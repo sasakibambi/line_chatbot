@@ -55,7 +55,7 @@ def handle_message(event):
                 messages=[
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_message}
-                ],
+                ]
             )
             reply_message = response.choices[0].message['content'].strip()
 
