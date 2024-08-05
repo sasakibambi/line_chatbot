@@ -2,6 +2,7 @@ from flask import Flask, request, abort
 from linebot.v3.messaging import MessagingApi, Configuration
 from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage as LineTextMessage
 from linebot.exceptions import InvalidSignatureError
+from linebot import WebhookHandler
 import openai
 import os
 
@@ -10,13 +11,13 @@ openai.api_key = os.getenv('OPENAI_API_KEY', 'sk-proj-0rWegtKf1k8b1H5jiy9qT3Blbk
 
 app = Flask(__name__)
 
-# LINE APIのアクセストークンとシークレットを設定
+# LINE APIのアクセストークンを設定
 configuration = Configuration(
-    access_token=os.getenv('CHANNEL_ACCESS_TOKEN', 'NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU='),
-    channel_secret=os.getenv('CHANNEL_SECRET', 'eb994f30fef1a6cc80a0a3f82508c758')
+    access_token=os.getenv('CHANNEL_ACCESS_TOKEN', 'NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU=')
 )
 line_api = MessagingApi(configuration)
 
+# WebhookHandlerの初期化
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET', 'eb994f30fef1a6cc80a0a3f82508c758'))
 
 # 質問回数を追跡するための変数
