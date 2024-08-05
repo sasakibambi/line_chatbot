@@ -1,29 +1,29 @@
 from flask import Flask, request, abort
-from linebot.v3.messaging import LineBotApi
-from linebot.v3.webhook import WebhookHandler
+from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
-import os
 
-# 環境変数の設定
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc'
 
 app = Flask(__name__)
 
-# LineBotの設定
-line_bot_api = LineBotApi(os.getenv('LINE_CHANNEL_ACCESS_TOKEN'))
-handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
+line_bot_api = LineBotApi('NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU=')
+handler = WebhookHandler('eb994f30fef1a6cc80a0a3f82508c758')
 
 # 質問回数を追跡するための変数
 user_question_count = {}
 
 @app.route("/", methods=['POST'])
 def home():
+    # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
+
+    # get request body as text
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
 
+    # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -37,9 +37,7 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
-    # ログ出力
-    app.logger.info(f"Received message: {user_message} from user: {user_id}")
-
+    # 文字数チェック
     if len(user_message) > 250:
         reply_message = "ご質問は250文字以内でお願いします！"
     else:
@@ -55,16 +53,10 @@ def handle_message(event):
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_message}
                 ],
-                max_tokens=250,
-                n=1,
-                stop=None,
-                temperature=0.7,
             )
             reply_message = response.choices[0].message['content']
 
-            # ログ出力
-            app.logger.info(f"Reply message: {reply_message}")
-
+            # 回答の文字数をチェックして制限
             if len(reply_message) > 250:
                 reply_message = reply_message[:250] + '...'
 
@@ -78,4 +70,6 @@ def handle_message(event):
     )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # ngrokの部分を削除
+    # public_url = ngrok.connect(5000)
+    app.run(host='0.0.0.0', port=5000)
