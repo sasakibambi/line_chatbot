@@ -1,5 +1,5 @@
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
+from linebot.v3 import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
@@ -36,6 +36,9 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
+    # ログ出力
+    app.logger.info(f"Received message: {user_message} from user: {user_id}")
+
     if len(user_message) > 250:
         reply_message = "ご質問は250文字以内でお願いします！"
     else:
@@ -57,6 +60,9 @@ def handle_message(event):
                 temperature=0.7,
             )
             reply_message = response.choices[0].message['content']
+
+            # ログ出力
+            app.logger.info(f"Reply message: {reply_message}")
 
             if len(reply_message) > 250:
                 reply_message = reply_message[:250] + '...'
