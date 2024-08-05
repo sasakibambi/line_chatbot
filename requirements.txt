@@ -1,4 +1,5 @@
 Flask
+pyngrok
 line-bot-sdk
 openai
 gunicorn
