@@ -1,9 +1,20 @@
+import os
+import subprocess
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 import openai
-import os
+
+# 仮想環境のアクティベーション（必要に応じて）
+# os.system("source myenv/bin/activate")  # Windowsの場合: myenv\\Scripts\\activate
+
+# `openai migrate` コマンドを実行
+try:
+    result = subprocess.run(["openai", "migrate"], check=True, text=True, capture_output=True)
+    print(result.stdout)  # コマンドの出力を表示
+except subprocess.CalledProcessError as e:
+    print(f"Error occurred: {e.stderr}")
 
 # OpenAI APIキーを設定
 openai.api_key = os.getenv('OPENAI_API_KEY', 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc')
@@ -29,7 +40,7 @@ def get_openai_response(user_message):
             model="gpt-3.5-turbo",
             messages=messages
         )
-        reply_message = response['choices'][0]['message']['content'].strip()
+        reply_message = response.choices[0].message['content'].strip()
 
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
