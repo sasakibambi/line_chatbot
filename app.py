@@ -73,7 +73,7 @@ def handle_message(event):
                 user_question_count[user_id] += 1
             except Exception as e:
                 app.logger.error(f"OpenAI API error: {e}")
-                reply_message = "回答を生成する際にエラーが発生しました。しばらくしてからもう一度お試しください。"
+                reply_message = f"回答を生成する際にエラーが発生しました。詳細: {e}"
 
         else:
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
