@@ -1,8 +1,8 @@
 from flask import Flask, request, abort
 from linebot.v3.messaging import MessagingApi, Configuration
-from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage as LineTextMessage
+from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage as LineTextMessage, MessageEvent
 from linebot.exceptions import InvalidSignatureError
-from linebot import WebhookHandler
+from linebot.v3.webhook import WebhookHandler
 import openai
 import os
 
@@ -45,7 +45,7 @@ def home():
 
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent, message=LineTextMessage)
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
