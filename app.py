@@ -28,7 +28,8 @@ def get_openai_response(user_message):
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response['choices'][0]['message']['content'].strip()
+        reply_message = response.choices[0].message['content'].strip()
+
 
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
