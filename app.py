@@ -1,5 +1,4 @@
 from flask import Flask, request, abort
-from pyngrok import ngrok, conf
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
@@ -8,7 +7,6 @@ import os
 
 # 環境変数の設定
 openai.api_key = os.getenv('OPENAI_API_KEY')
-conf.get_default().auth_token = os.getenv('NGROK_AUTH_TOKEN')
 
 app = Flask(__name__)
 
@@ -47,14 +45,15 @@ def handle_message(event):
         if user_question_count[user_id] < 3:
             system_instruction = "以下の質問に対して、回答を日本語で250文字以内にまとめてください。"
 
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": user_message}
-                ],
+            response = openai.Completion.create(
+                engine="text-davinci-003",
+                prompt=f"{system_instruction}\n\n{user_message}",
+                max_tokens=250,
+                n=1,
+                stop=None,
+                temperature=0.7,
             )
-            reply_message = response.choices[0].message['content']
+            reply_message = response.choices[0].text.strip()
 
             if len(reply_message) > 250:
                 reply_message = reply_message[:250] + '...'
@@ -69,5 +68,4 @@ def handle_message(event):
     )
 
 if __name__ == "__main__":
-    public_url = ngrok.connect(5000)
     app.run(host="0.0.0.0", port=5000)
