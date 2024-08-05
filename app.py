@@ -8,8 +8,8 @@ openai.api_key = 'sk-proj-0rWegtKf1k8b1H5jiy9qT3BlbkFJFH3IhU8ZAQVEftyw71Sc'
 
 app = Flask(__name__)
 
-line_bot_api = LineBotApi('NmCgpqV6XfBzGenkoKXeZH5SVB/+WDArTAehA6jC6S7pYGdA4UOpjgt14nQ6t+X8/3+skVNUXR9h9Mp2ouYZGMmhgAJQ/6fvYU3kCUhfnp8ar2gptSyUcP5aagVBo2he6nSk+J2UTU90JNI4NPc03wdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('eb994f30fef1a6cc80a0a3f82508c758')
+line_bot_api = LineBotApi('YOUR_CHANNEL_ACCESS_TOKEN')
+handler = WebhookHandler('YOUR_CHANNEL_SECRET')
 
 # 質問回数を追跡するための変数
 user_question_count = {}
@@ -21,13 +21,13 @@ def home():
 
     # get request body as text
     body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
+    app.logger.info("Request body: " + body)  # リクエストボディをログに記録
 
     # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-              app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
+        app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
 
     return 'OK'
@@ -37,7 +37,8 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
-app.logger.info(f"Received message from {user_id}: {user_message}")  # 受信メッセージをログに記録
+    app.logger.info(f"Received message from {user_id}: {user_message}")  # 受信メッセージをログに記録
+
     # 文字数チェック
     if len(user_message) > 250:
         reply_message = "ご質問は250文字以内でお願いします！"
@@ -65,7 +66,7 @@ app.logger.info(f"Received message from {user_id}: {user_message}")  # 受信メ
         else:
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
 
-app.logger.info(f"Replying with: {reply_message}")  # 返信メッセージをログに記録
+    app.logger.info(f"Replying with: {reply_message}")  # 返信メッセージをログに記録
 
     line_bot_api.reply_message(
         event.reply_token,
@@ -73,6 +74,4 @@ app.logger.info(f"Replying with: {reply_message}")  # 返信メッセージを�
     )
 
 if __name__ == "__main__":
-    # ngrokの部分を削除
-    # public_url = ngrok.connect(5000)
     app.run(host='0.0.0.0', port=5000)
