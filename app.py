@@ -1,8 +1,9 @@
 from flask import Flask, request, abort
 from linebot.v3.messaging import MessagingApi, Configuration
-from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage as LineTextMessage, MessageEvent
+from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage as LineTextMessage
 from linebot.exceptions import InvalidSignatureError
 from linebot.v3.webhook import WebhookHandler
+from linebot.v3.webhook.models import MessageEvent
 import openai
 import os
 
@@ -73,26 +74,3 @@ def handle_message(event):
                 reply_message = response['choices'][0]['message']['content'].strip()
 
                 # 返信メッセージの長さを制限
-                if len(reply_message) > 250:
-                    reply_message = reply_message[:250] + '...'
-
-                user_question_count[user_id] += 1
-            except Exception as e:
-                app.logger.error(f"OpenAI APIエラー: {e}")
-                reply_message = f"回答を生成する際にエラーが発生しました。詳細: {e}"
-            except Exception as e:
-                app.logger.error(f"予期しないエラー: {e}")
-                reply_message = "予期しないエラーが発生しました。後ほど再試行してください。"
-
-        else:
-            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
-
-    app.logger.info(f"返信内容: {reply_message}")  # 返信メッセージをログに記録
-
-    line_api.reply_message(
-        event.reply_token,
-        ReplyMessageRequest(messages=[LineTextMessage(text=reply_message)])
-    )
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
