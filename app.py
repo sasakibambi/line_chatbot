@@ -76,7 +76,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] < 3:
+        if user_question_count[user_id] < 4:
             reply_message = get_openai_response(user_message)
             user_question_count[user_id] += 1
         else:
