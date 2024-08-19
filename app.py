@@ -18,7 +18,7 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 user_question_count = {}
 
 def get_openai_response(user_message):
-    system_instruction = "以下の質問に対して、日本語を使用するとても聡明でユーモアと優しさを持ち合わせた女性の様に回答し250文字以内にまとめてください。"
+    system_instruction = "以下の質問に対して、日本語を使用するとても聡明で優しい女性の様に回答し250文字以内にまとめてください。"
     messages = [
         {"role": "system", "content": system_instruction},
         {"role": "user", "content": user_message}
@@ -76,7 +76,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] < 3:
+        if user_question_count[user_id] < 5:
             reply_message = get_openai_response(user_message)
             user_question_count[user_id] += 1
         else:
