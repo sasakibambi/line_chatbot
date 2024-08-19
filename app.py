@@ -18,7 +18,7 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 user_question_count = {}
 
 def get_openai_response(user_message):
-    system_instruction = "以下の質問に対して、日本語の博多弁を使用するとても聡明で柔和で前向きな性質を持った女性の様に回答し250文字以内にまとめてください。"
+    system_instruction = "以下の質問に対して、日本語の博多弁を使用するとても聡明で前向きな性質を持った女性の様に回答し250文字以内にまとめてください。"
     messages = [
         {"role": "system", "content": system_instruction},
         {"role": "user", "content": user_message}
