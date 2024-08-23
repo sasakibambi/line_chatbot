@@ -15,10 +15,10 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 user_question_count = {}
 
 def get_openai_response(user_message):
-    # 聡明さと優しさを持ち合わせた女性として回答するためのプロンプトを作成
+    # 聡明さと優しさを持ち合わせた女性として回答し、250文字以内にまとめるためのプロンプトを作成
     prompt = (
         f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
-        f"温かく、かつ知識に基づいて答えてください。\n\n"
+        f"温かく、かつ知識に基づいて答えてください。ただし、回答は250文字以内にまとめてください。\n\n"
         f"質問: {user_message}"
     )
     
@@ -76,7 +76,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] <= 3:
+        if user_question_count[user_id] < 3:
             # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
                 line_bot_api.reply_message(
