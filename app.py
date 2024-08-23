@@ -68,6 +68,7 @@ def handle_message(event):
     try:
         user_id = event.source.user_id
         user_message = event.message.text
+        reply_token = event.reply_token  # reply_tokenを取得
 
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
 
@@ -75,8 +76,9 @@ def handle_message(event):
         if len(user_message) > 250:
             reply_message = "ご質問は250文字以内でお願いします！"
             try:
+                # reply_tokenは一度だけ使用
                 line_bot_api.reply_message(
-                    event.reply_token,
+                    reply_token,
                     TextSendMessage(text=reply_message)
                 )
             except LineBotApiError as e:
@@ -88,33 +90,23 @@ def handle_message(event):
             user_question_count[user_id] = 0
 
         if user_question_count[user_id] <= 3:
-            # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
-            try:
-                line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(text="少々お待ちください...！")
-                )
-            except LineBotApiError as e:
-                app.logger.error(f"LINE Messaging APIエラー: {e}")
-                return
-
             # OpenAIからの応答を取得
             reply_message = get_openai_response(user_message)
             user_question_count[user_id] += 1
 
-            # メッセージを再送信するためにプッシュメッセージを使用
+            # 応答を送信
             try:
-                line_bot_api.push_message(
-                    user_id,
+                line_bot_api.reply_message(
+                    reply_token,
                     TextSendMessage(text=reply_message)
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE Messaging APIエラー: {e}")
         else:
-            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
+            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！"
             try:
                 line_bot_api.reply_message(
-                    event.reply_token,
+                    reply_token,
                     TextSendMessage(text=reply_message)
                 )
             except LineBotApiError as e:
