@@ -17,14 +17,14 @@ user_question_count = {}
 
 def get_openai_response(user_message):
     # OpenAI APIからの応答を取得するためのコード
-       response = openai.ChatCompletion.create(
+    response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "user", "content": user_message}
         ],
-        max_tokens=250
+        max_tokens=150
     )
-    return response.choices[0].text.strip()
+    return response.choices[0].message['content'].strip()
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -70,7 +70,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] <= 3:
+        if user_question_count[user_id] < 4:
             # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
                 line_bot_api.reply_message(
