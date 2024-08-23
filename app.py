@@ -75,7 +75,7 @@ def handle_message(event):
         reply_message = get_openai_response(user_message)
         user_question_count[user_id] += 1
 
-        # OpenAIの応答をプッシュメッセージとして送信
+        # OpenAIの応答をLINEのメッセージとして送信
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             try:
@@ -103,4 +103,5 @@ def handle_message(event):
                 app.logger.error(f"LINE Messaging APIエラー: {e}")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
