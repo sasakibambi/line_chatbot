@@ -1,30 +1,17 @@
 from flask import Flask, request, abort
-
-from linebot.v3 import (
-    WebhookHandler
-)
-from linebot.v3.exceptions import (
-    InvalidSignatureError
-)
-from linebot.v3.messaging import (
-    Configuration,
-    ApiClient,
-    MessagingApi,
-    LineBotApi,  # ここでLineBotApiをインポート
-    ReplyMessageRequest,
-    TextMessage
-)
-from linebot.v3.webhooks import (
-    MessageEvent,
-    TextMessageContent
-)
+from linebot.v3 import WebhookHandler
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest
+from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot.v3.messaging.models import TextMessage
 
 app = Flask(__name__)
 
 # LINE Messaging APIの設定
-configuration = Configuration(access_token='CHANNEL_ACCESS_TOKEN')
-handler = WebhookHandler('CHANNEL_SECRET')
-line_bot_api = LineBotApi('CHANNEL_ACCESS_TOKEN')  # インポートしたLineBotApiを使用
+configuration = Configuration(access_token='YOUR_CHANNEL_ACCESS_TOKEN')
+api_client = ApiClient(configuration)
+messaging_api = MessagingApi(api_client)
+handler = WebhookHandler('YOUR_CHANNEL_SECRET')
 
 # ユーザーの質問回数をカウントする辞書
 user_question_count = {}
@@ -39,6 +26,8 @@ def callback():
     
     try:
         handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
     except Exception as e:
         app.logger.error(f"リクエスト処理中のエラー: {e}, Traceback: {traceback.format_exc()}")
         abort(500)
@@ -59,9 +48,11 @@ def handle_message(event):
         if user_question_count[user_id] == 0:
             try:
                 app.logger.info("LINEに待機メッセージを送信します")
-                line_bot_api.reply_message(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text="少々お待ちください…！")]
+                messaging_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="少々お待ちください…！")]
+                    )
                 )
                 app.logger.info("待機メッセージ送信成功")
             except Exception as e:
@@ -72,9 +63,9 @@ def handle_message(event):
             reply_message = get_openai_response(user_message)
             try:
                 app.logger.info("LINEにプッシュメッセージを送信します")
-                line_bot_api.push_message(
-                    to=user_id,
-                    messages=[TextMessage(text=reply_message)]
+                messaging_api.push_message(
+                    user_id,
+                    [TextMessage(text=reply_message)]
                 )
                 app.logger.info("プッシュメッセージ送信成功")
             except Exception as e:
@@ -87,9 +78,11 @@ def handle_message(event):
                 user_question_count[user_id] += 1
                 try:
                     app.logger.info("LINEにメッセージを送信します")
-                    line_bot_api.reply_message(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=reply_message)]
+                    messaging_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=reply_message)]
+                        )
                     )
                     app.logger.info("メッセージ送信成功")
                 except Exception as e:
@@ -99,9 +92,11 @@ def handle_message(event):
                 reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
                 try:
                     app.logger.info("3問目以降のメッセージを送信します")
-                    line_bot_api.reply_message(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=reply_message)]
+                    messaging_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=reply_message)]
+                        )
                     )
                     app.logger.info("メッセージ送信成功")
                 except Exception as e:
