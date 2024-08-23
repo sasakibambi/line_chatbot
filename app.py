@@ -2,7 +2,7 @@ import os
 import traceback
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
-from linebot.v3.webhook import MessageEvent, TextMessageContent  # TextMessageContent をインポート
+from linebot.v3.webhook import MessageEvent  # TextMessageContentのインポートを削除
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration,
@@ -76,12 +76,12 @@ def callback():
     
     return 'OK'
 
-# TextMessageContent を使用して MessageEvent をハンドリング
-@handler.add(MessageEvent, message=TextMessageContent)
+# MessageEvent をハンドリング
+@handler.add(MessageEvent)
 def handle_message(event):
     try:
         user_id = event.source.user_id
-        user_message = event.message.text
+        user_message = event.message.text  # ここで直接テキストを取得
         
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
         
