@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
@@ -31,6 +30,10 @@ def get_openai_response(user_message):
     except Exception as e:
         app.logger.error(f"OpenAI APIエラー: {e}")
         return "申し訳ありませんが、応答を取得できませんでした。"
+
+@app.route("/", methods=['GET'])
+def home():
+    return "Flaskアプリケーションが正常に動作しています。"
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -79,7 +82,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] <= 3:
+        if user_question_count[user_id] < 4:
             # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
                 line_bot_api.reply_message(
