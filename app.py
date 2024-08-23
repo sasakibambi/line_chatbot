@@ -37,6 +37,7 @@ def get_openai_response(user_message):
             messages=messages
         )
         reply_message = response.choices[0].message['content'].strip()
+        app.logger.info(f"OpenAIの応答: {reply_message}")  # OpenAIの応答をログに記録
         
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
@@ -89,7 +90,7 @@ def handle_message(event):
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
                 try:
-                    # ReplyMessageRequest を使って返信を送信
+                    app.logger.info("LINEにメッセージを送信します")  # 送信前にログを挿入
                     line_bot_api.reply_message_with_http_info(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
@@ -105,12 +106,14 @@ def handle_message(event):
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
                 try:
+                    app.logger.info("3問目以降のメッセージを送信します")  # 送信前にログを挿入
                     line_bot_api.reply_message_with_http_info(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
                             messages=[TextMessage(text=reply_message)]
                         )
                     )
+                    app.logger.info("メッセージ送信成功")
                 except Exception as e:
                     app.logger.error(f"LINE Messaging APIエラー: {e}")
                     raise
