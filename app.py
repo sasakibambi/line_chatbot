@@ -10,6 +10,7 @@ from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
+    LineBotApi,  # ここでLineBotApiをインポート
     ReplyMessageRequest,
     TextMessage
 )
@@ -23,8 +24,7 @@ app = Flask(__name__)
 # LINE Messaging APIの設定
 configuration = Configuration(access_token='CHANNEL_ACCESS_TOKEN')
 handler = WebhookHandler('CHANNEL_SECRET')
-line_bot_api = LineBotApi('CHANNEL_ACCESS_TOKEN')
-handler = WebhookHandler('CHANNEL_SECRET')
+line_bot_api = LineBotApi('CHANNEL_ACCESS_TOKEN')  # インポートしたLineBotApiを使用
 
 # ユーザーの質問回数をカウントする辞書
 user_question_count = {}
