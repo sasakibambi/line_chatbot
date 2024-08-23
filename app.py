@@ -17,9 +17,11 @@ user_question_count = {}
 
 def get_openai_response(user_message):
     # OpenAI APIからの応答を取得するためのコード
-    response = openai.Completion.create(
-        engine="davinci",
-        prompt=user_message,
+       response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "user", "content": user_message}
+        ],
         max_tokens=250
     )
     return response.choices[0].text.strip()
