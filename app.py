@@ -49,66 +49,60 @@ def handle_message(event):
 
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
 
-        if user_id not in user_question_count:
-            user_question_count[user_id] = 0
-
-        if user_question_count[user_id] == 0:
+        # メッセージの長さを確認
+        if len(user_message) > 250:
+            reply_message = "ご質問は250文字以内でお願いします！"
             try:
-                app.logger.info("LINEに待機メッセージを送信します")
                 messaging_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text="少々お待ちください…！")]
+                        messages=[TextMessage(text=reply_message)]
                     )
                 )
-                app.logger.info("待機メッセージ送信成功")
             except Exception as e:
                 app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
-                raise
+            return
 
-            # 次に実際のプッシュメッセージを送信
-            reply_message = get_openai_response(user_message)
+        # 質問回数を確認してから返信
+        if user_id not in user_question_count:
+            user_question_count[user_id] = 0
+
+        if user_question_count[user_id] < 4:
+            # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
-                app.logger.info("LINEにプッシュメッセージを送信します")
+                messaging_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="少々お待ちください...")]
+                    )
+                )
+            except Exception as e:
+                app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
+                return
+            
+            # OpenAIからの応答を取得
+            reply_message = get_openai_response(user_message)
+            user_question_count[user_id] += 1
+
+            # メッセージを再送信するためにプッシュメッセージを使用
+            try:
                 messaging_api.push_message(
                     user_id,
                     [TextMessage(text=reply_message)]
                 )
-                app.logger.info("プッシュメッセージ送信成功")
             except Exception as e:
                 app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
-                raise
         else:
-            if user_question_count[user_id] <= 3:
-                reply_message = get_openai_response(user_message)
-                app.logger.info(f"OpenAIからの応答を取得しました: {reply_message}")
-                user_question_count[user_id] += 1
-                try:
-                    app.logger.info("LINEにメッセージを送信します")
-                    messaging_api.reply_message(
-                        ReplyMessageRequest(
-                            reply_token=event.reply_token,
-                            messages=[TextMessage(text=reply_message)]
-                        )
+            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
+            try:
+                messaging_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=reply_message)]
                     )
-                    app.logger.info("メッセージ送信成功")
-                except Exception as e:
-                    app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
-                    raise
-            else:
-                reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
-                try:
-                    app.logger.info("3問目以降のメッセージを送信します")
-                    messaging_api.reply_message(
-                        ReplyMessageRequest(
-                            reply_token=event.reply_token,
-                            messages=[TextMessage(text=reply_message)]
-                        )
-                    )
-                    app.logger.info("メッセージ送信成功")
-                except Exception as e:
-                    app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
-                    raise
+                )
+            except Exception as e:
+                app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
     except Exception as e:
         app.logger.error(f"メッセージ処理中のエラー: {e}, トレースバック: {traceback.format_exc()}")
 
@@ -118,16 +112,12 @@ def get_openai_response(user_message):
         response = openai.Completion.create(
             engine="text-davinci-003",  # 使用するモデル（例: text-davinci-003）
             prompt=user_message,        # ユーザーからのメッセージ
-            max_tokens=150,             # 応答の最大トークン数
-            n=1,                        # 応答の数
-            stop=None,                  # 応答を停止するトークン
-            temperature=0.7             # 応答の多様性
+            max_tokens=150              # 応答の最大トークン数
         )
-        reply_message = response.choices[0].text.strip()
-        return reply_message
+        return response.choices[0].text.strip()
     except Exception as e:
         app.logger.error(f"OpenAI APIエラー: {e}, トレースバック: {traceback.format_exc()}")
-        return "申し訳ありませんが、処理中にエラーが発生しました。"
+        return "申し訳ありませんが、応答を取得できませんでした。"
 
 if __name__ == "__main__":
     # 開発サーバーを 0.0.0.0 で起動する
