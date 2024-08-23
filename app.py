@@ -60,6 +60,7 @@ def callback():
     # Webhookボディを処理
     try:
         handler.handle(body, signature)
+        app.logger.info("Webhook処理成功")
     except InvalidSignatureError:
         app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
@@ -84,6 +85,7 @@ def handle_message(event):
         if user_question_count[user_id] <= 3:
             # OpenAIからの応答をバックグラウンドで取得
             reply_message = get_openai_response(user_message)
+            app.logger.info(f"OpenAIからの応答を取得しました: {reply_message}")
             user_question_count[user_id] += 1
             
             # OpenAIの応答をLINEのメッセージとして送信
@@ -122,4 +124,5 @@ def handle_message(event):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    app.logger.info(f"サーバーを起動しています。ポート: {port}")
     app.run(host='0.0.0.0', port=port)
