@@ -1,28 +1,36 @@
+
 import os
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
-import time
+import logging
 
 app = Flask(__name__)
 
 # LINE Messaging APIの設定
-line_bot_api = LineBotApi('CHANNEL_ACCESS_TOKEN')
-handler = WebhookHandler('CHANNEL_SECRET')
+line_bot_api = LineBotApi('CHANNEL_ACCESS_TOKEN')  # 正しいアクセストークンを設定
+handler = WebhookHandler('CHANNEL_SECRET')         # 正しいチャネルシークレットを設定
+
+# OpenAI APIキーの設定
+openai.api_key = 'OPENAI_API_KEY'  # 正しいOpenAI APIキーを設定
 
 # ユーザーの質問回数をカウントする辞書
 user_question_count = {}
 
 def get_openai_response(user_message):
     # OpenAI APIからの応答を取得するためのコード
-    response = openai.Completion.create(
-        engine="davinci",
-        prompt=user_message,
-        max_tokens=150
-    )
-    return response.choices[0].text.strip()
+    try:
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt=user_message,
+            max_tokens=150
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        app.logger.error(f"OpenAI APIエラー: {e}")
+        return "申し訳ありませんが、応答を取得できませんでした。"
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -32,6 +40,9 @@ def callback():
 
     signature = request.headers['x-line-signature']
     body = request.get_data(as_text=True)
+
+    app.logger.info(f"Received body: {body}")
+    app.logger.info(f"Received signature: {signature}")
 
     try:
         handler.handle(body, signature)
@@ -68,7 +79,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] < 4:
+        if user_question_count[user_id] <= 3:
             # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
                 line_bot_api.reply_message(
@@ -105,4 +116,5 @@ def handle_message(event):
         app.logger.error(f"メッセージ処理中のエラー: {e}")
 
 if __name__ == "__main__":
+    # 開発サーバーを 0.0.0.0 で起動する
     app.run(host='0.0.0.0', port=5000)
