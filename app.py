@@ -15,17 +15,16 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 user_question_count = {}
 
 def get_openai_response(user_message):
-    # 聡明さと優しさを持ち合わせた女性として回答し、250文字以内にまとめるためのプロンプトを作成
     prompt = (
         f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
-        f"温かく、かつ知識に基づいて250文字以内で文章が途切れないように要約して答えてください。\n\n"
+        f"温かく、かつ知識に基づいて250文字以内の文章にまとめてください。文章を途切れさせてはいけません。\n\n"
         f"質問: {user_message}"
     )
     
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で250文字以内にまとめて回答します。"},
+            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で250文字以内の文章にまとめて回答します。"},
             {"role": "user", "content": prompt}
         ],
         max_tokens=150
@@ -72,20 +71,19 @@ def handle_message(event):
 
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
 
-        # すぐに返信を送る
-        line_bot_api.reply_message(
-            reply_token,
-            TextSendMessage(text="少々お待ちください...！")
-        )
-
-        # 質問回数を確認してから返信
+        # まず、質問回数を確認して制限に達していないかを確認
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] <= 3:
+        if user_question_count[user_id] < 3:
+            # すぐに返信を送る
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text="少々お待ちください...！")
+            )
+
             # OpenAIからの応答を取得
             reply_message = get_openai_response(user_message)
-            user_question_count[user_id] += 1
 
             # メッセージを送信（プッシュメッセージで送信）
             try:
@@ -95,11 +93,16 @@ def handle_message(event):
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE Messaging APIエラー: {e}")
+
+            # 回答を送信した後に質問回数を増やす
+            user_question_count[user_id] += 1
+
         else:
+            # 3問に達した場合は終了メッセージを送信
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！"
             try:
-                line_bot_api.push_message(
-                    user_id,
+                line_bot_api.reply_message(
+                    reply_token,
                     TextSendMessage(text=reply_message)
                 )
             except LineBotApiError as e:
