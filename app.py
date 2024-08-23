@@ -1,6 +1,6 @@
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage
+from linebot.v3 import LineBotApi, WebhookHandler
+from linebot.v3.models import MessageEvent, TextMessage
 import logging
 import traceback
 
@@ -104,8 +104,8 @@ def handle_message(event):
 
 def get_openai_response(user_message):
     # OpenAIからの応答を取得するための関数
-    # 実際の実装を追加してください
+    # 実装が必要です
     return "OpenAIからの応答"
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
