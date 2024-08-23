@@ -1,9 +1,15 @@
 import os
 from flask import Flask, request, abort
-from linebot.v3.messaging import MessagingApi, ApiClient, Configuration
-from linebot.v3.webhook import WebhookHandler, MessageEvent, TextMessageContent
-from linebot.exceptions import InvalidSignatureError
-from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage
+from linebot.v3.webhook import WebhookHandler
+from linebot.v3.messaging import (
+    Configuration,
+    ApiClient,
+    MessagingApi,
+    ReplyMessageRequest,
+    TextMessage
+)
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.types import MessageEvent, TextMessageContent
 import openai
 
 app = Flask(__name__)
@@ -24,18 +30,18 @@ def get_openai_response(user_message):
         {"role": "system", "content": system_instruction},
         {"role": "user", "content": user_message}
     ]
-
+    
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
         )
         reply_message = response.choices[0].message['content'].strip()
-
+        
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
             reply_message = reply_message[:250] + '...'
-
+        
         return reply_message
     except Exception as e:
         app.logger.error(f"OpenAI APIエラー: {e}")
@@ -45,36 +51,36 @@ def get_openai_response(user_message):
 def callback():
     # X-Line-Signatureヘッダー値を取得
     signature = request.headers['X-Line-Signature']
-
+    
     # リクエストボディをテキストとして取得
     body = request.get_data(as_text=True)
     app.logger.info("リクエストボディ: " + body)
-
+    
     # Webhookボディを処理
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
-
+    
     return 'OK'
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
-
+    
     app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
-
+    
     # 質問回数を確認してから返信
     if user_id not in user_question_count:
         user_question_count[user_id] = 0
-
+    
     if user_question_count[user_id] <= 3:
         # OpenAIからの応答をバックグラウンドで取得
         reply_message = get_openai_response(user_message)
         user_question_count[user_id] += 1
-
+        
         # OpenAIの応答をLINEのメッセージとして送信
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
