@@ -118,15 +118,16 @@ def get_openai_response(user_message):
         response = openai.Completion.create(
             engine="text-davinci-003",  # 使用するモデル（例: text-davinci-003）
             prompt=user_message,        # ユーザーからのメッセージ
-            max_tokens=150              # 応答の最大トークン数
+            max_tokens=150,             # 応答の最大トークン数
+            n=1,                        # 応答の数
+            stop=None,                  # 応答を停止するトークン
+            temperature=0.7             # 応答の多様性
         )
-        
-        # 応答を取得し、返す
         reply_message = response.choices[0].text.strip()
         return reply_message
     except Exception as e:
-        app.logger.error(f"OpenAI APIエラー: 応答取得中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
-        return "申し訳ありませんが、応答を取得できませんでした。"
+        app.logger.error(f"OpenAI APIエラー: {e}, トレースバック: {traceback.format_exc()}")
+        return "申し訳ありませんが、処理中にエラーが発生しました。"
 
 if __name__ == "__main__":
     # 開発サーバーを 0.0.0.0 で起動する
