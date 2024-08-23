@@ -18,7 +18,7 @@ def get_openai_response(user_message):
     # 聡明さと優しさを持ち合わせた女性として回答し、250文字以内にまとめるためのプロンプトを作成
     prompt = (
         f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
-        f"温かく、かつ知識に基づいて答えてください。ただし、回答は250文字以内の文章に纏めて下さい。\n\n"
+        f"温かく、かつ知識に基づいて答えてください。ただし、回答は250文字以内の文章に要約してください。\n\n"
         f"質問: {user_message}"
     )
     
@@ -30,7 +30,11 @@ def get_openai_response(user_message):
         ],
         max_tokens=150
     )
-    return response.choices[0].message['content'].strip()
+    
+    reply = response.choices[0].message['content'].strip()
+    if len(reply) > 250:
+        reply = reply[:250] + "..."
+    return reply
 
 @app.route("/", methods=['GET'])
 def root():
@@ -85,7 +89,7 @@ def handle_message(event):
             try:
                 line_bot_api.reply_message(
                     event.reply_token,
-                    TextSendMessage(text="少々お待ちください...")
+                    TextSendMessage(text="少々お待ちください...！")
                 )
             except LineBotApiError as e:
                 app.logger.error(f"LINE Messaging APIエラー: {e}")
