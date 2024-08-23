@@ -2,14 +2,14 @@ import os
 import traceback
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
-from linebot.v3.webhook import MessageEvent  # TextMessageContentのインポートは削除
+from linebot.v3.webhook import MessageEvent
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
     ReplyMessageRequest,
-    TextMessage  # TextMessageを使用
+    TextMessage
 )
 import openai
 
@@ -42,7 +42,7 @@ def get_openai_response(user_message):
             messages=messages
         )
         reply_message = response.choices[0].message['content'].strip()
-        app.logger.info(f"OpenAIの応答: {reply_message}")  # OpenAIの応答をログに記録
+        app.logger.info(f"OpenAIの応答: {reply_message}")
         
         # 返信メッセージの長さを制限
         if len(reply_message) > 250:
@@ -50,24 +50,25 @@ def get_openai_response(user_message):
         
         return reply_message
     except Exception as e:
-        app.logger.error(f"OpenAI APIエラー: {e}")
+        app.logger.error(f"OpenAI APIエラー: {e}, Traceback: {traceback.format_exc()}")
         return "申し訳ありませんが、現在対応できません。後ほどお試しください。"
 
 @app.route("/callback", methods=['POST'])
 def callback():
-    # X-Line-Signatureヘッダー値を取得
-    signature = request.headers['X-Line-Signature']
-    
-    # リクエストボディをテキストとして取得
-    body = request.get_data(as_text=True)
-    app.logger.info("リクエストボディ: " + body)
-    
-    # Webhookボディを処理
     try:
+        # X-Line-Signatureヘッダー値を取得
+        signature = request.headers['X-Line-Signature']
+    
+        # リクエストボディをテキストとして取得
+        body = request.get_data(as_text=True)
+        app.logger.info("リクエストボディ: " + body)
+        
+        # Webhookボディを処理
         handler.handle(body, signature)
         app.logger.info("Webhook処理成功")
-    except InvalidSignatureError:
-        app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
+    
+    except InvalidSignatureError as e:
+        app.logger.error(f"Invalid signature. Please check your channel access token/channel secret. Error: {e}, Traceback: {traceback.format_exc()}")
         abort(400)
     except Exception as e:
         app.logger.error(f"Webhook handlingエラー: {e}, Traceback: {traceback.format_exc()}")
@@ -75,7 +76,7 @@ def callback():
     
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessage)  # TextMessageに変更
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     try:
         user_id = event.source.user_id
@@ -88,16 +89,14 @@ def handle_message(event):
             user_question_count[user_id] = 0
         
         if user_question_count[user_id] <= 3:
-            # OpenAIからの応答をバックグラウンドで取得
             reply_message = get_openai_response(user_message)
             app.logger.info(f"OpenAIからの応答を取得しました: {reply_message}")
             user_question_count[user_id] += 1
             
-            # OpenAIの応答をLINEのメッセージとして送信
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
                 try:
-                    app.logger.info("LINEにメッセージを送信します")  # 送信前にログを挿入
+                    app.logger.info("LINEにメッセージを送信します")
                     line_bot_api.reply_message_with_http_info(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
@@ -113,7 +112,7 @@ def handle_message(event):
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
                 try:
-                    app.logger.info("3問目以降のメッセージを送信します")  # 送信前にログを挿入
+                    app.logger.info("3問目以降のメッセージを送信します")
                     line_bot_api.reply_message_with_http_info(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
@@ -128,6 +127,9 @@ def handle_message(event):
         app.logger.error(f"メッセージ処理中のエラー: {e}, Traceback: {traceback.format_exc()}")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.logger.info(f"サーバーを起動しています。ポート: {port}")
-    app.run(host='0.0.0.0', port=port)
+    try:
+        port = int(os.environ.get("PORT", 5000))
+        app.logger.info(f"サーバーを起動しています。ポート: {port}")
+        app.run(host='0.0.0.0', port=port)
+    except Exception as e:
+        app.logger.error(f"サーバー起動エラー: {e}, Traceback: {traceback.format_exc()}")
