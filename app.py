@@ -86,12 +86,12 @@ def handle_message(event):
     if user_id not in user_question_count:
         user_question_count[user_id] = 0
 
-    if user_question_count[user_id] < 4:
+    if user_question_count[user_id] < 3:
         # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
         try:
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="少々お待ちください...")
+                TextSendMessage(text="少々お待ちください...!")
             )
         except LineBotApiError as e:
             app.logger.error(f"LINE Messaging APIエラー: {e}")
