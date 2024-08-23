@@ -4,7 +4,6 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
-import time
 
 app = Flask(__name__)
 
@@ -16,11 +15,18 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 user_question_count = {}
 
 def get_openai_response(user_message):
-    # OpenAI APIからの応答を取得するためのコード
+    # 聡明さと優しさを持ち合わせた女性として回答するためのプロンプトを作成
+    prompt = (
+        f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
+        f"温かく、かつ知識に基づいて答えてください。\n\n"
+        f"質問: {user_message}"
+    )
+    
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "user", "content": user_message}
+            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性です。"},
+            {"role": "user", "content": prompt}
         ],
         max_tokens=150
     )
@@ -70,7 +76,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] < 4:
+        if user_question_count[user_id] <= 3:
             # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
                 line_bot_api.reply_message(
