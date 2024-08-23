@@ -1,14 +1,15 @@
 import os
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
+from linebot.v3.messaging import MessagingApi
+from linebot.v3.webhooks import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.v3.models import MessageEvent, TextMessage, TextSendMessage
 import openai
 
 app = Flask(__name__)
 
 # LINE API設定
-line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
+messaging_api = MessagingApi(channel_access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 
 # OpenAI APIキーを設定
@@ -85,9 +86,10 @@ def handle_message(event):
     app.logger.info(f"返信内容: {reply_message}")  # 返信メッセージをログに記録
 
     try:
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=reply_message)
+        # 新しいAPIのメソッドで返信
+        messaging_api.reply_message(
+            reply_token=event.reply_token,
+            messages=[TextSendMessage(text=reply_message)]
         )
     except Exception as e:
         app.logger.error(f"LINE Messaging APIエラー: {e}")
