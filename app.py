@@ -1,14 +1,14 @@
 import os
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
-from linebot.v3.webhook import MessageEvent, TextMessageContent  # 修正
+from linebot.v3.webhook import MessageEvent  # TextMessageContentのインポートは削除
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
     ReplyMessageRequest,
-    TextMessage
+    TextMessage  # TextMessageを使用
 )
 import openai
 
@@ -65,7 +65,7 @@ def callback():
     
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessageContent)
+@handler.add(MessageEvent, message=TextMessage)  # TextMessageに変更
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
