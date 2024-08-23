@@ -101,23 +101,6 @@ def handle_message(event):
                         messages=[TextMessage(text=reply_message)]
                     )
                 )
-            except Exception as e:
-                app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
-    except Exception as e:
-        app.logger.error(f"メッセージ処理中のエラー: {e}, トレースバック: {traceback.format_exc()}")
-
-def get_openai_response(user_message):
-    try:
-        # OpenAI APIを呼び出して応答を取得
-        response = openai.Completion.create(
-            engine="text-davinci-003",  # 使用するモデル（例: text-davinci-003）
-            prompt=user_message,        # ユーザーからのメッセージ
-            max_tokens=150              # 応答の最大トークン数
-        )
-        return response.choices[0].text.strip()
-    except Exception as e:
-        app.logger.error(f"OpenAI APIエラー: {e}, トレースバック: {traceback.format_exc()}")
-        return "申し訳ありませんが、応答を取得できませんでした。"
 
 if __name__ == "__main__":
     # 開発サーバーを 0.0.0.0 で起動する
