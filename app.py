@@ -25,7 +25,7 @@ def get_openai_response(user_message):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性です。"},
+            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で250文字以内にまとめて回答します。"},
             {"role": "user", "content": prompt}
         ],
         max_tokens=150
@@ -72,18 +72,11 @@ def handle_message(event):
 
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
 
-        # メッセージの長さを確認
-        if len(user_message) > 250:
-            reply_message = "ご質問は250文字以内でお願いします！"
-            try:
-                # reply_tokenは一度だけ使用
-                line_bot_api.reply_message(
-                    reply_token,
-                    TextSendMessage(text=reply_message)
-                )
-            except LineBotApiError as e:
-                app.logger.error(f"LINE Messaging APIエラー: {e}")
-            return
+        # すぐに返信を送る
+        line_bot_api.reply_message(
+            reply_token,
+            TextSendMessage(text="少々お待ちください...！")
+        )
 
         # 質問回数を確認してから返信
         if user_id not in user_question_count:
@@ -94,10 +87,10 @@ def handle_message(event):
             reply_message = get_openai_response(user_message)
             user_question_count[user_id] += 1
 
-            # 応答を送信
+            # メッセージを送信（プッシュメッセージで送信）
             try:
-                line_bot_api.reply_message(
-                    reply_token,
+                line_bot_api.push_message(
+                    user_id,
                     TextSendMessage(text=reply_message)
                 )
             except LineBotApiError as e:
@@ -105,8 +98,8 @@ def handle_message(event):
         else:
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！"
             try:
-                line_bot_api.reply_message(
-                    reply_token,
+                line_bot_api.push_message(
+                    user_id,
                     TextSendMessage(text=reply_message)
                 )
             except LineBotApiError as e:
