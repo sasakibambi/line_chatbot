@@ -1,4 +1,5 @@
 import os
+import traceback
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.webhook import MessageEvent  # TextMessageContentのインポートは削除
@@ -13,6 +14,10 @@ from linebot.v3.messaging import (
 import openai
 
 app = Flask(__name__)
+
+# ログの設定
+import logging
+logging.basicConfig(level=logging.INFO)
 
 # LINE API設定
 configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
@@ -65,7 +70,7 @@ def callback():
         app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
     except Exception as e:
-        app.logger.error(f"Webhook handlingエラー: {e}")
+        app.logger.error(f"Webhook handlingエラー: {e}, Traceback: {traceback.format_exc()}")
         abort(500)
     
     return 'OK'
@@ -101,7 +106,7 @@ def handle_message(event):
                     )
                     app.logger.info("メッセージ送信成功")
                 except Exception as e:
-                    app.logger.error(f"LINE Messaging APIエラー: {e}")
+                    app.logger.error(f"LINE Messaging APIエラー: {e}, Traceback: {traceback.format_exc()}")
                     raise
         else:
             reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
@@ -117,10 +122,10 @@ def handle_message(event):
                     )
                     app.logger.info("メッセージ送信成功")
                 except Exception as e:
-                    app.logger.error(f"LINE Messaging APIエラー: {e}")
+                    app.logger.error(f"LINE Messaging APIエラー: {e}, Traceback: {traceback.format_exc()}")
                     raise
     except Exception as e:
-        app.logger.error(f"メッセージ処理中のエラー: {e}")
+        app.logger.error(f"メッセージ処理中のエラー: {e}, Traceback: {traceback.format_exc()}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
