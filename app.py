@@ -45,7 +45,7 @@ def get_openai_response(user_message):
         return reply_message
     except Exception as e:
         app.logger.error(f"OpenAI APIエラー: {e}")
-        return f"回答を生成する際にエラーが発生しました。詳細: {e}"
+        return "申し訳ありませんが、現在対応できません。後ほどお試しください。"
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -60,53 +60,62 @@ def callback():
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
+        app.logger.error("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
+    except Exception as e:
+        app.logger.error(f"Webhook handlingエラー: {e}")
+        abort(500)
     
     return 'OK'
 
 @handler.add(MessageEvent, message=TextMessage)  # TextMessageに変更
 def handle_message(event):
-    user_id = event.source.user_id
-    user_message = event.message.text
-    
-    app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
-    
-    # 質問回数を確認してから返信
-    if user_id not in user_question_count:
-        user_question_count[user_id] = 0
-    
-    if user_question_count[user_id] <= 3:
-        # OpenAIからの応答をバックグラウンドで取得
-        reply_message = get_openai_response(user_message)
-        user_question_count[user_id] += 1
+    try:
+        user_id = event.source.user_id
+        user_message = event.message.text
         
-        # OpenAIの応答をLINEのメッセージとして送信
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            try:
-                # ReplyMessageRequest を使って返信を送信
-                line_bot_api.reply_message_with_http_info(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=reply_message)]
+        app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
+        
+        # 質問回数を確認してから返信
+        if user_id not in user_question_count:
+            user_question_count[user_id] = 0
+        
+        if user_question_count[user_id] <= 3:
+            # OpenAIからの応答をバックグラウンドで取得
+            reply_message = get_openai_response(user_message)
+            user_question_count[user_id] += 1
+            
+            # OpenAIの応答をLINEのメッセージとして送信
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                try:
+                    # ReplyMessageRequest を使って返信を送信
+                    line_bot_api.reply_message_with_http_info(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=reply_message)]
+                        )
                     )
-                )
-            except Exception as e:
-                app.logger.error(f"LINE Messaging APIエラー: {e}")
-    else:
-        reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            try:
-                line_bot_api.reply_message_with_http_info(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=reply_message)]
+                    app.logger.info("メッセージ送信成功")
+                except Exception as e:
+                    app.logger.error(f"LINE Messaging APIエラー: {e}")
+                    raise
+        else:
+            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                try:
+                    line_bot_api.reply_message_with_http_info(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=reply_message)]
+                        )
                     )
-                )
-            except Exception as e:
-                app.logger.error(f"LINE Messaging APIエラー: {e}")
+                except Exception as e:
+                    app.logger.error(f"LINE Messaging APIエラー: {e}")
+                    raise
+    except Exception as e:
+        app.logger.error(f"メッセージ処理中のエラー: {e}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
