@@ -32,8 +32,11 @@ def get_openai_response(user_message):
     )
     
     reply = response.choices[0].message['content'].strip()
+    
+    # 250文字以内に収まるように、かつ文脈が途切れないように調整
     if len(reply) > 250:
-        reply = reply[:250] + "..."
+        reply = reply[:250].rsplit(' ', 1)[0] + "..."  # 文の切れ目をスペースで調整
+    
     return reply
 
 @app.route("/", methods=['GET'])
