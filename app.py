@@ -32,6 +32,10 @@ def get_openai_response(user_message):
     )
     return response.choices[0].message['content'].strip()
 
+@app.route("/", methods=['GET'])
+def root():
+    return 'Server is running', 200
+
 @app.route("/callback", methods=['POST'])
 def callback():
     if 'x-line-signature' not in request.headers:
@@ -76,7 +80,7 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        if user_question_count[user_id] < 3:
+        if user_question_count[user_id] <= 3:
             # まずはリプライトークンが有効なうちに「少々お待ちください」というメッセージを送信
             try:
                 line_bot_api.reply_message(
