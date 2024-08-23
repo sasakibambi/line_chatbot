@@ -1,14 +1,15 @@
 import os
 from flask import Flask, request, abort
-from linebot.v3.messaging import MessagingApi
-from linebot.v3.webhook import WebhookHandler, MessageEvent, TextMessage, TextSendMessage
-from linebot.exceptions import InvalidSignatureError, LineBotApiError
+from linebot.v3.messaging import MessagingApi, ApiClient, Configuration
+from linebot.v3.webhook import WebhookHandler, MessageEvent, TextMessageContent
+from linebot.exceptions import InvalidSignatureError
+from linebot.v3.messaging.models import ReplyMessageRequest, TextMessage
 import openai
 
 app = Flask(__name__)
 
 # LINE API設定
-messaging_api = MessagingApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
+configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 
 # OpenAI APIキーを設定
@@ -40,83 +41,66 @@ def get_openai_response(user_message):
         app.logger.error(f"OpenAI APIエラー: {e}")
         return f"回答を生成する際にエラーが発生しました。詳細: {e}"
 
-@app.route("/", methods=['POST'])
-def home():
+@app.route("/callback", methods=['POST'])
+def callback():
+    # X-Line-Signatureヘッダー値を取得
+    signature = request.headers['X-Line-Signature']
+
+    # リクエストボディをテキストとして取得
+    body = request.get_data(as_text=True)
+    app.logger.info("リクエストボディ: " + body)
+
+    # Webhookボディを処理
     try:
-        # X-Line-Signatureヘッダー値を取得
-        signature = request.headers['X-Line-Signature']
-
-        # リクエストボディをテキストとして取得
-        body = request.get_data(as_text=True)
-        app.logger.info("リクエストボディ: " + body)  # リクエストボディをログに記録
-
-        # Webhookボディを処理
         handler.handle(body, signature)
-
     except InvalidSignatureError:
-        app.logger.error("無効な署名です。チャンネルアクセストークンまたはチャンネルシークレットを確認してください。")
+        app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
-    except Exception as e:
-        app.logger.error(f"エラー: {e}")
-        abort(500)
 
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
 
-    app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")  # 受信したメッセージをログに記録
-
-    # メッセージの長さを確認
-    if len(user_message) > 250:
-        reply_message = "ご質問は250文字以内でお願いします！"
-        try:
-            messaging_api.push_message(
-                user_id,
-                TextSendMessage(text=reply_message)
-            )
-        except LineBotApiError as e:
-            app.logger.error(f"LINE Messaging APIエラー: {e}")
-        return
+    app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
 
     # 質問回数を確認してから返信
     if user_id not in user_question_count:
         user_question_count[user_id] = 0
 
     if user_question_count[user_id] <= 3:
-        # まずは「少々お待ちください」というメッセージを送信
-        try:
-            messaging_api.push_message(
-                user_id,
-                TextSendMessage(text="少々お待ちください...!")
-            )
-        except LineBotApiError as e:
-            app.logger.error(f"LINE Messaging APIエラー: {e}")
-            return
-        
         # OpenAIからの応答をバックグラウンドで取得
         reply_message = get_openai_response(user_message)
         user_question_count[user_id] += 1
 
         # OpenAIの応答をプッシュメッセージとして送信
-        try:
-            messaging_api.push_message(
-                user_id,
-                TextSendMessage(text=reply_message)
-            )
-        except LineBotApiError as e:
-            app.logger.error(f"LINE Messaging APIエラー: {e}")
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            try:
+                # ReplyMessageRequest を使って返信を送信
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=reply_message)]
+                    )
+                )
+            except Exception as e:
+                app.logger.error(f"LINE Messaging APIエラー: {e}")
     else:
         reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
-        try:
-            messaging_api.push_message(
-                user_id,
-                TextSendMessage(text=reply_message)
-            )
-        except LineBotApiError as e:
-            app.logger.error(f"LINE Messaging APIエラー: {e}")
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            try:
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=reply_message)]
+                    )
+                )
+            except Exception as e:
+                app.logger.error(f"LINE Messaging APIエラー: {e}")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
