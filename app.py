@@ -2,16 +2,17 @@ from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot.v3.webhooks import MessageEvent
 from linebot.v3.messaging.models import TextMessage
+import traceback
 
 app = Flask(__name__)
 
 # LINE Messaging APIの設定
-configuration = Configuration(access_token='YOUR_CHANNEL_ACCESS_TOKEN')
+configuration = Configuration(access_token='CHANNEL_ACCESS_TOKEN')
 api_client = ApiClient(configuration)
 messaging_api = MessagingApi(api_client)
-handler = WebhookHandler('YOUR_CHANNEL_SECRET')
+handler = WebhookHandler('CHANNEL_SECRET')
 
 # ユーザーの質問回数をカウントする辞書
 user_question_count = {}
@@ -19,6 +20,7 @@ user_question_count = {}
 @app.route("/callback", methods=['POST'])
 def callback():
     if 'x-line-signature' not in request.headers:
+        app.logger.error("リクエストにx-line-signatureヘッダーが含まれていません。")
         abort(400)
     
     signature = request.headers['x-line-signature']
@@ -27,9 +29,10 @@ def callback():
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        app.logger.error("無効な署名です。")
         abort(400)
     except Exception as e:
-        app.logger.error(f"リクエスト処理中のエラー: {e}, Traceback: {traceback.format_exc()}")
+        app.logger.error(f"リクエスト処理中のエラー: {e}, トレースバック: {traceback.format_exc()}")
         abort(500)
     
     return 'OK'
@@ -41,10 +44,10 @@ def handle_message(event):
         user_message = event.message.text
 
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
-        
+
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
-        
+
         if user_question_count[user_id] == 0:
             try:
                 app.logger.info("LINEに待機メッセージを送信します")
@@ -56,9 +59,9 @@ def handle_message(event):
                 )
                 app.logger.info("待機メッセージ送信成功")
             except Exception as e:
-                app.logger.error(f"LINE Messaging APIエラー: {e}, Traceback: {traceback.format_exc()}")
+                app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
                 raise
-            
+
             # 次に実際のプッシュメッセージを送信
             reply_message = get_openai_response(user_message)
             try:
@@ -69,7 +72,7 @@ def handle_message(event):
                 )
                 app.logger.info("プッシュメッセージ送信成功")
             except Exception as e:
-                app.logger.error(f"LINE Messaging APIエラー: {e}, Traceback: {traceback.format_exc()}")
+                app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
                 raise
         else:
             if user_question_count[user_id] <= 3:
@@ -86,7 +89,7 @@ def handle_message(event):
                     )
                     app.logger.info("メッセージ送信成功")
                 except Exception as e:
-                    app.logger.error(f"LINE Messaging APIエラー: {e}, Traceback: {traceback.format_exc()}")
+                    app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
                     raise
             else:
                 reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！お会いできる日を心待ちにしております！"
@@ -100,15 +103,10 @@ def handle_message(event):
                     )
                     app.logger.info("メッセージ送信成功")
                 except Exception as e:
-                    app.logger.error(f"LINE Messaging APIエラー: {e}, Traceback: {traceback.format_exc()}")
+                    app.logger.error(f"LINE Messaging APIエラー: メッセージ送信中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
                     raise
     except Exception as e:
-        app.logger.error(f"メッセージ処理中のエラー: {e}, Traceback: {traceback.format_exc()}")
-
-def get_openai_response(user_message):
-    # OpenAIからの応答を取得するための関数
-    # 実際の実装を追加してください
-    return "OpenAIからの応答"
+        app.logger.error(f"メッセージ処理中のエラー: {e}, トレースバック: {traceback.format_exc()}")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(port=5000)
