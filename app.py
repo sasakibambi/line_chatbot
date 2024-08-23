@@ -4,6 +4,7 @@ from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest
 from linebot.v3.webhooks import MessageEvent
 from linebot.v3.messaging.models import TextMessage
+import openai
 import traceback
 
 app = Flask(__name__)
@@ -13,6 +14,9 @@ configuration = Configuration(access_token='CHANNEL_ACCESS_TOKEN')
 api_client = ApiClient(configuration)
 messaging_api = MessagingApi(api_client)
 handler = WebhookHandler('CHANNEL_SECRET')
+
+# OpenAI APIキーの設定
+openai.api_key = 'OPENAI_API_KEY'
 
 # ユーザーの質問回数をカウントする辞書
 user_question_count = {}
@@ -108,5 +112,22 @@ def handle_message(event):
     except Exception as e:
         app.logger.error(f"メッセージ処理中のエラー: {e}, トレースバック: {traceback.format_exc()}")
 
+def get_openai_response(user_message):
+    try:
+        # OpenAI APIを呼び出して応答を取得
+        response = openai.Completion.create(
+            engine="text-davinci-003",  # 使用するモデル（例: text-davinci-003）
+            prompt=user_message,        # ユーザーからのメッセージ
+            max_tokens=150              # 応答の最大トークン数
+        )
+        
+        # 応答を取得し、返す
+        reply_message = response.choices[0].text.strip()
+        return reply_message
+    except Exception as e:
+        app.logger.error(f"OpenAI APIエラー: 応答取得中にエラーが発生しました: {e}, トレースバック: {traceback.format_exc()}")
+        return "申し訳ありませんが、応答を取得できませんでした。"
+
 if __name__ == "__main__":
-    app.run(port=5000)
+    # 開発サーバーを 0.0.0.0 で起動する
+    app.run(host='0.0.0.0', port=5000)
