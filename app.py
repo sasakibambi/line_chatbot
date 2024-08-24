@@ -22,7 +22,7 @@ def get_openai_response(user_message):
     # Promptにユーザーからの質問を挿入して、OpenAI APIへのリクエストを準備
     prompt = (
         f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
-        f"温かく、かつ知識に基づいて250文字以内の文章にまとめてください。文章を途切れさせてはいけません。\n\n"
+        f"温かく、かつ知識に基づいて230文字〜250文字以内の文章にまとめてください。文章を途切れさせてはいけません。\n\n"
         f"質問: {user_message}"
     )
     
@@ -30,7 +30,7 @@ def get_openai_response(user_message):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で250文字以内の文章にまとめて回答します。"},
+            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で230文字〜250文字以内の文章にまとめて回答します。"},
             {"role": "user", "content": prompt}
         ],
         max_tokens=150
@@ -39,11 +39,11 @@ def get_openai_response(user_message):
     # OpenAI APIから返されたテキストを取得し、余分なスペースを除去
     reply = response.choices[0].message['content'].strip()
     
-    # もし応答が250文字を超える場合、文が途切れないように最後のスペースで切り取る
-    # if len(reply) > 250:
-    #     reply = reply[:250].rsplit(' ', 1)[0] + "..."
+    もし応答が250文字を超える場合、文が途切れないように最後のスペースで切り取る
+    if len(reply) > 250:
+        reply = reply[:250].rsplit(' ', 1)[0] + "..."
     
-    # return reply
+    return reply
 
 # ルートURLにアクセスされた場合の応答
 @app.route("/", methods=['GET'])
