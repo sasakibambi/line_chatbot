@@ -18,37 +18,9 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 user_question_count = {}
 
 # OpenAI APIを使って応答を生成する関数
-# def get_openai_response(user_message):
-#     # Promptにユーザーからの質問を挿入して、OpenAI APIへのリクエストを準備
-#     prompt = (
-#         f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
-#         f"温かく、かつ知識に基づいて230文字〜250文字以内の文章にまとめてください。文章を途切れさせてはいけません。\n\n"
-#         f"質問: {user_message}"
-#     )
-    
-    # OpenAI APIにチャットモデルを使ってリクエストを送信し、応答を生成
-    # response = openai.ChatCompletion.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[
-    #         {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で230文字〜250文字以内の文章にまとめて回答します。文章を途切れさせてはいけません。"},
-    #         {"role": "user", "content": prompt}
-    #     ],
-    #     max_tokens=150
-    # )
-    
-    # OpenAI APIから返されたテキストを取得し、余分なスペースを除去
-    # reply = response.choices[0].message['content'].strip()
-    
-    # もし応答が250文字を超える場合、文が途切れないように最後のスペースで切り取る
-    # if len(reply) > 250:
-    #     reply = reply[:250].rsplit(' ', 1)[0] + "..."
-    
-    # return reply
-
-
 def get_openai_response(user_message):
     system_instruction = "あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に対して、回答を日本語で250文字以内にまとめてください。"
-
+    
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -58,10 +30,32 @@ def get_openai_response(user_message):
             ]
         )
         reply_message = response['choices'][0]['message']['content'].strip()
-
+        
+# 返信メッセージの長さを制限
+if len(reply_message) > 250:
+    # 句点（。）で文章を分割
+    sentences = reply_message.split('。')
+    
+    # 文章の途中で切れないようにする
+    truncated_message = ''
+    
+    for sentence in sentences:
+        # 次の文章を追加しても250文字以内なら追加
+        if len(truncated_message) + len(sentence) + 1 <= 250:  # 1文字は句点のため
+            truncated_message += sentence + '。'
+        else:
+            break
+    
+    # 最後に省略記号を追加
+    reply_message = truncated_message.strip() + '...'
         # 返信メッセージの長さを制限
-        if len(reply_message) > 250:
-            reply_message = reply_message[:250] + '...'
+    #     if len(reply_message) > 250:
+    #         reply_message = reply_message[:250].rsplit(' ', 1)[0] + '...'
+        
+    #     return reply_message
+    # except Exception as e:
+    #     app.logger.error(f"OpenAI APIのエラー: {e}")
+    #     return "申し訳ありませんが、応答を生成できませんでした。もう一度お試しください。"
 
 # ルートURLにアクセスされた場合の応答
 @app.route("/", methods=['GET'])
@@ -120,6 +114,10 @@ def handle_message(event):
 
             # OpenAI APIからの応答を取得
             reply_message = get_openai_response(user_message)
+
+            # 応答が空でないか確認
+            if not reply_message:
+                reply_message = "申し訳ありませんが、応答を生成できませんでした。"
 
             # プッシュメッセージで応答を送信
             try:
