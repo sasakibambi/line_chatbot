@@ -40,10 +40,10 @@ def get_openai_response(user_message):
     reply = response.choices[0].message['content'].strip()
     
     # もし応答が250文字を超える場合、文が途切れないように最後のスペースで切り取る
-    if len(reply) > 250:
-        reply = reply[:250].rsplit(' ', 1)[0] + "..."
+    # if len(reply) > 250:
+    #     reply = reply[:250].rsplit(' ', 1)[0] + "..."
     
-    return reply
+    # return reply
 
 # ルートURLにアクセスされた場合の応答
 @app.route("/", methods=['GET'])
