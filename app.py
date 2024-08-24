@@ -30,7 +30,7 @@ def get_openai_response(user_message):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で230文字〜250文字以内の文章にまとめて回答します。"},
+            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で230文字〜250文字以内の文章にまとめて回答します。文章を途切れさせてはいけません。"},
             {"role": "user", "content": prompt}
         ],
         max_tokens=150
