@@ -18,32 +18,50 @@ handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 user_question_count = {}
 
 # OpenAI APIを使って応答を生成する関数
-def get_openai_response(user_message):
-    # Promptにユーザーからの質問を挿入して、OpenAI APIへのリクエストを準備
-    prompt = (
-        f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
-        f"温かく、かつ知識に基づいて230文字〜250文字以内の文章にまとめてください。文章を途切れさせてはいけません。\n\n"
-        f"質問: {user_message}"
-    )
+# def get_openai_response(user_message):
+#     # Promptにユーザーからの質問を挿入して、OpenAI APIへのリクエストを準備
+#     prompt = (
+#         f"あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に、"
+#         f"温かく、かつ知識に基づいて230文字〜250文字以内の文章にまとめてください。文章を途切れさせてはいけません。\n\n"
+#         f"質問: {user_message}"
+#     )
     
     # OpenAI APIにチャットモデルを使ってリクエストを送信し、応答を生成
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で230文字〜250文字以内の文章にまとめて回答します。文章を途切れさせてはいけません。"},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=150
-    )
+    # response = openai.ChatCompletion.create(
+    #     model="gpt-3.5-turbo",
+    #     messages=[
+    #         {"role": "system", "content": "あなたは聡明さと優しさを持ち合わせた女性で230文字〜250文字以内の文章にまとめて回答します。文章を途切れさせてはいけません。"},
+    #         {"role": "user", "content": prompt}
+    #     ],
+    #     max_tokens=150
+    # )
     
     # OpenAI APIから返されたテキストを取得し、余分なスペースを除去
-    reply = response.choices[0].message['content'].strip()
+    # reply = response.choices[0].message['content'].strip()
     
     # もし応答が250文字を超える場合、文が途切れないように最後のスペースで切り取る
-    if len(reply) > 250:
-        reply = reply[:250].rsplit(' ', 1)[0] + "..."
+    # if len(reply) > 250:
+    #     reply = reply[:250].rsplit(' ', 1)[0] + "..."
     
-    return reply
+    # return reply
+
+
+def get_openai_response(user_message):
+    system_instruction = "あなたは聡明さと優しさを持ち合わせた女性です。以下の質問に対して、回答を日本語で250文字以内にまとめてください。"
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": user_message}
+            ]
+        )
+        reply_message = response['choices'][0]['message']['content'].strip()
+
+        # 返信メッセージの長さを制限
+        if len(reply_message) > 250:
+            reply_message = reply_message[:250] + '...'
 
 # ルートURLにアクセスされた場合の応答
 @app.route("/", methods=['GET'])
