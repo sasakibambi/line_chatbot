@@ -98,6 +98,16 @@ def handle_message(event):
         # ログにメッセージの受信を記録
         app.logger.info(f"{user_id}からのメッセージを受信しました: {user_message}")
 
+        # メッセージが250文字を超えるかどうかをチェック
+        if len(user_message) > 250:
+            # 固定メッセージを返す
+            fixed_message = "申し訳ありませんが、ご質問は250文字以内でお願いいたします！>_<"
+            line_bot_api.reply_message(
+                reply_token,
+                TextSendMessage(text=fixed_message)
+            )
+            return
+
         # ユーザーの質問回数を確認し、初めての質問の場合はカウントを初期化
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
