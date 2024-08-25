@@ -117,7 +117,7 @@ def handle_message(event):
             if not reply_message:
                 reply_message = "申し訳ありませんが、応答を生成できませんでした。"
 
-            
+            try:
                 # 生成された応答をプッシュメッセージで送信
                 line_bot_api.push_message(
                     user_id,
