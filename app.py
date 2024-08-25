@@ -142,7 +142,7 @@ def handle_message(event):
 
         else:
             # 質問回数が3回に達した場合、終了メッセージを送信
-            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！"
+            reply_message = "貴重なお時間をいただき、誠にありがとうございました。回答は３問までです！･:*+.\(( °ω° ))/.:+"
             try:
                 line_bot_api.reply_message(
                     reply_token,
