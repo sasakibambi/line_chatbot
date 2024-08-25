@@ -101,7 +101,7 @@ def handle_message(event):
         # メッセージが250文字を超えるかどうかをチェック
         if len(user_message) > 250:
             # 固定メッセージを返す
-            fixed_message = "申し訳ありませんが、ご質問は250文字以内でお願いいたします！>_<"
+            fixed_message = "申し訳ございませんが、ご質問は250文字以内でお願いいたします！>_<"
             line_bot_api.reply_message(
                 reply_token,
                 TextSendMessage(text=fixed_message)
