@@ -102,8 +102,8 @@ def handle_message(event):
         if user_id not in user_question_count:
             user_question_count[user_id] = 0
 
-        # 質問回数が3回未満の場合、応答を送信
-        if user_question_count[user_id] < 3:
+        # 質問回数が3回以下の場合、応答を送信
+        if user_question_count[user_id] <= 3:
             # ユーザーに「少々お待ちください」との応答をすぐに送信
             line_bot_api.reply_message(
                 reply_token,
